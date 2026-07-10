@@ -122,17 +122,25 @@ function validateSubmission(body) {
 
 function formatDateTime(timestamp) {
   const date = new Date(timestamp);
+  const formatter = new Intl.DateTimeFormat("en-IN", {
+    timeZone: APP_TIME_ZONE,
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+  const parts = formatter.formatToParts(date).reduce((acc, part) => {
+    if (part.type !== "literal") {
+      acc[part.type] = part.value;
+    }
+    return acc;
+  }, {});
   return {
-    date: date.toLocaleDateString("en-GB", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    }),
-    time: date.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    }),
+    date: `${parts.day}/${parts.month}/${parts.year}`,
+    time: `${parts.hour}:${parts.minute} ${parts.dayPeriod || ""}`.trim(),
   };
 }
 

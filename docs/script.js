@@ -34,21 +34,63 @@ function apiUrl(pathname) {
 
 function updateClock() {
   const now = new Date();
-  currentDate.textContent = now.toLocaleDateString("en-GB", {
+  const formatted = now.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
   });
-  currentTime.textContent = now.toLocaleTimeString("en-US", {
+  const [datePart, timePart] = formatted.split(", ");
+  currentDate.textContent = datePart || "--";
+  currentTime.textContent = timePart || "--";
+}
+
+function setMessage(text, type = "") {
+  message.textContent = text;
+  message.className = `message ${type}`.trim();
+}
+
+function formatIstDateTime(timestamp) {
+  return new Date(timestamp).toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
   });
 }
 
-function setMessage(text, type = "") {
-  message.textContent = text;
-  message.className = `message ${type}`.trim();
+function formatIstDateKey(timestamp) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+}
+
+function formatIstDate(timestamp) {
+  return new Date(timestamp).toLocaleDateString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+}
+
+function formatIstTime(timestamp) {
+  return new Date(timestamp).toLocaleTimeString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 }
 
 function formatLocation(record) {
@@ -89,7 +131,7 @@ function matchesFilters(record) {
 
   const haystack = `${record.name} ${record.rollNumber}`.toLowerCase();
   const termMatch = !term || haystack.includes(term);
-  const dateMatch = !selectedDate || selectedDate === record.timestamp.slice(0, 10);
+  const dateMatch = !selectedDate || selectedDate === formatIstDateKey(record.timestamp);
   const semesterMatch = !selectedSemester || selectedSemester === record.semester;
 
   return termMatch && dateMatch && semesterMatch;
@@ -120,8 +162,8 @@ function renderRecords() {
           <td>${record.rollNumber}</td>
           <td>${record.mobileNumber}</td>
           <td>${record.semester}</td>
-          <td>${record.date}</td>
-          <td>${record.time}</td>
+          <td>${formatIstDate(record.timestamp)}</td>
+          <td>${formatIstTime(record.timestamp)}</td>
           <td>${record.ipAddress || "Unknown"}</td>
           <td>${locationCell}</td>
         </tr>
@@ -175,7 +217,7 @@ async function loadMyAttendance() {
     const data = await requestJson(`/api/my-attendance?token=${encodeURIComponent(myAttendanceToken)}`);
     if (data.record) {
       const r = data.record;
-      setMessage(`Your attendance is saved for ${r.date} at ${r.time}.`, "success");
+      setMessage(`Your attendance is saved for ${formatIstDateTime(r.timestamp)}.`, "success");
     }
   } catch {
     localStorage.removeItem(STORAGE_KEY);
