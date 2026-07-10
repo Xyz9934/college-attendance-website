@@ -36,12 +36,11 @@ const keepCount = document.getElementById("keepCount");
 const APP_CONFIG = window.APP_CONFIG || {};
 const API_BASE_URL = APP_CONFIG.apiBaseUrl || "";
 const STORAGE_KEY = "attendance-my-token";
-const ADMIN_TOKEN_KEY = "attendance-admin-token";
 const SESSION_KEY = "attendance-admin-auth";
 
 let records = [];
 let archiveRecords = [];
-let adminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || "";
+let adminToken = "";
 let adminAuthenticated = sessionStorage.getItem(SESSION_KEY) === "true";
 let myAttendanceToken = localStorage.getItem(STORAGE_KEY) || "";
 let gps = { latitude: "", longitude: "" };
@@ -355,7 +354,6 @@ async function loginAdmin() {
 
     if (data.token) {
       adminToken = data.token;
-      localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
     }
 
     adminAuthenticated = true;
@@ -381,7 +379,6 @@ async function logoutAdmin() {
   } finally {
     adminAuthenticated = false;
     adminToken = "";
-    localStorage.removeItem(ADMIN_TOKEN_KEY);
     sessionStorage.removeItem(SESSION_KEY);
     records = [];
     adminPanel.hidden = true;
