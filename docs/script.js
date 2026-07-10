@@ -15,13 +15,19 @@ const adminSubmitButton = document.getElementById("adminSubmitButton");
 const adminPanel = document.getElementById("adminPanel");
 const logoutButton = document.getElementById("logoutButton");
 
-const ADMIN_PASSWORD = "zoology123";
-const STORAGE_KEY = "attendance-records";
+const APP_CONFIG = window.APP_CONFIG || {};
+const API_BASE_URL = APP_CONFIG.apiBaseUrl || "";
+const STORAGE_KEY = "attendance-my-token";
 const SESSION_KEY = "attendance-admin-auth";
 
 let records = [];
-let gps = { latitude: "", longitude: "" };
 let adminAuthenticated = sessionStorage.getItem(SESSION_KEY) === "true";
+let myAttendanceToken = localStorage.getItem(STORAGE_KEY) || "";
+let gps = { latitude: "", longitude: "" };
+
+function apiUrl(pathname) {
+  return `${API_BASE_URL}${pathname}`;
+}
 
 function updateClock() {
   const now = new Date();
@@ -42,18 +48,6 @@ function setMessage(text, type = "") {
   message.className = `message ${type}`.trim();
 }
 
-function getStoredRecords() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-  } catch {
-    return [];
-  }
-}
-
-function saveStoredRecords(nextRecords) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(nextRecords));
-}
-
 function formatLocation(record) {
   if (record.latitude && record.longitude) {
     const lat = Number(record.latitude).toFixed(6);
@@ -61,6 +55,23 @@ function formatLocation(record) {
     return `${lat}, ${lng}`;
   }
   return "Not available";
+}
+
+async function requestJson(pathname, options = {}) {
+  const response = await fetch(apiUrl(pathname), {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+    ...options,
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(data.error || "Request failed.");
+  }
+  return data;
 }
 
 function matchesFilters(record) {
@@ -111,40 +122,84 @@ function renderRecords() {
     .join("");
 }
 
-function loadAdminSession() {
-  adminPanel.hidden = !adminAuthenticated;
-  if (adminAuthenticated) {
-    records = getStoredRecords();
+async function loadAdminSession() {
+  try {
+    const data = await requestJson("/api/admin/session");
+    adminAuthenticated = Boolean(data.authenticated);
+    sessionStorage.setItem(SESSION_KEY, String(adminAuthenticated));
+    adminPanel.hidden = !adminAuthenticated;
+    if (adminAuthenticated) {
+      await loadRecords();
+    } else {
+      renderRecords();
+    }
+  } catch {
+    adminAuthenticated = false;
+    adminPanel.hidden = true;
+    renderRecords();
   }
+}
+
+async function loadRecords() {
+  if (!adminAuthenticated) return;
+  const data = await requestJson("/api/admin/records");
+  records = data.records || [];
   renderRecords();
 }
 
-function loginAdmin() {
+function saveMyToken(token) {
+  myAttendanceToken = token;
+  localStorage.setItem(STORAGE_KEY, token);
+}
+
+async function loadMyAttendance() {
+  if (!myAttendanceToken) return;
+  try {
+    const data = await requestJson(`/api/my-attendance?token=${encodeURIComponent(myAttendanceToken)}`);
+    if (data.record) {
+      const r = data.record;
+      setMessage(`Your attendance is saved for ${r.date} at ${r.time}.`, "success");
+    }
+  } catch {
+    localStorage.removeItem(STORAGE_KEY);
+    myAttendanceToken = "";
+  }
+}
+
+async function loginAdmin() {
   const password = adminPassword.value.trim();
   if (!password) {
     window.alert("Enter the admin password.");
     return;
   }
-  if (password !== ADMIN_PASSWORD) {
-    window.alert("Incorrect password.");
-    return;
-  }
 
-  adminAuthenticated = true;
-  sessionStorage.setItem(SESSION_KEY, "true");
-  adminPanel.hidden = false;
-  adminLogin.hidden = true;
-  adminPassword.value = "";
-  records = getStoredRecords();
-  renderRecords();
+  try {
+    await requestJson("/api/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ password }),
+    });
+
+    adminAuthenticated = true;
+    sessionStorage.setItem(SESSION_KEY, "true");
+    adminPanel.hidden = false;
+    adminLogin.hidden = true;
+    adminPassword.value = "";
+    await loadRecords();
+  } catch (error) {
+    window.alert(error.message);
+  }
 }
 
-function logoutAdmin() {
-  adminAuthenticated = false;
-  sessionStorage.removeItem(SESSION_KEY);
-  records = [];
-  adminPanel.hidden = true;
-  renderRecords();
+async function logoutAdmin() {
+  try {
+    await requestJson("/api/admin/logout", { method: "POST" });
+  } finally {
+    adminAuthenticated = false;
+    sessionStorage.removeItem(SESSION_KEY);
+    records = [];
+    adminPanel.hidden = true;
+    renderRecords();
+  }
 }
 
 async function loadIp() {
@@ -158,9 +213,7 @@ async function loadIp() {
 }
 
 function captureLocation() {
-  if (!navigator.geolocation) {
-    return;
-  }
+  if (!navigator.geolocation) return;
 
   navigator.geolocation.getCurrentPosition(
     (position) => {
@@ -217,35 +270,22 @@ form.addEventListener("submit", async (event) => {
   payload.longitude = gps.longitude;
 
   try {
-    const timestamp = new Date().toISOString();
-    const now = new Date(timestamp);
-    const record = {
-      id: crypto.randomUUID(),
-      ...payload,
-      course: "B.Sc. Zoology",
-      date: now.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-      }),
-      time: now.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
-      timestamp,
-      ipAddress: ipAddress.textContent || "Unknown",
-      userAgent: navigator.userAgent,
-    };
+    const data = await requestJson("/api/attendance", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
 
-    const nextRecords = [record, ...getStoredRecords()];
-    saveStoredRecords(nextRecords);
-    records = nextRecords;
+    if (data.accessToken) {
+      saveMyToken(data.accessToken);
+    }
 
     form.reset();
     captureLocation();
-    setMessage("Attendance saved successfully.", "success");
-    renderRecords();
+    setMessage("Attendance saved successfully. Only you can reopen your record with your token.", "success");
+    if (data.record) {
+      records = [data.record, ...records];
+      renderRecords();
+    }
   } catch (error) {
     setMessage(error.message || "Failed to save attendance.", "error");
   }
@@ -267,3 +307,4 @@ setInterval(updateClock, 1000);
 loadIp();
 captureLocation();
 loadAdminSession();
+loadMyAttendance();
