@@ -36,12 +36,11 @@ const keepCount = document.getElementById("keepCount");
 const APP_CONFIG = window.APP_CONFIG || {};
 const API_BASE_URL = APP_CONFIG.apiBaseUrl || "";
 const STORAGE_KEY = "attendance-my-token";
-const SESSION_KEY = "attendance-admin-auth";
 
 let records = [];
 let archiveRecords = [];
 let adminToken = "";
-let adminAuthenticated = sessionStorage.getItem(SESSION_KEY) === "true";
+let adminAuthenticated = false;
 let myAttendanceToken = localStorage.getItem(STORAGE_KEY) || "";
 let gps = { latitude: "", longitude: "" };
 let viewMode = "live";
@@ -278,27 +277,14 @@ function setViewMode(mode) {
 
 async function loadAdminSession() {
   try {
-    if (!adminToken) {
-      adminAuthenticated = false;
-      adminPanel.hidden = true;
-      renderRecords();
-      return;
-    }
-    const data = await requestJson("/api/admin/session");
-    adminAuthenticated = Boolean(data.authenticated);
-    sessionStorage.setItem(SESSION_KEY, String(adminAuthenticated));
-    adminPanel.hidden = !adminAuthenticated;
-    if (adminLockNote) {
-      adminLockNote.hidden = !adminAuthenticated;
-    }
-    if (adminAuthenticated) {
-      await loadRecords();
-    } else {
-      renderRecords();
-    }
+    adminAuthenticated = false;
+    adminPanel.hidden = true;
+    if (adminLockNote) adminLockNote.hidden = true;
+    renderRecords();
   } catch {
     adminAuthenticated = false;
     adminPanel.hidden = true;
+    if (adminLockNote) adminLockNote.hidden = true;
     renderRecords();
   }
 }
@@ -357,7 +343,6 @@ async function loginAdmin() {
     }
 
     adminAuthenticated = true;
-    sessionStorage.setItem(SESSION_KEY, "true");
     adminPanel.hidden = false;
     if (adminLockNote) {
       adminLockNote.hidden = false;
@@ -379,7 +364,6 @@ async function logoutAdmin() {
   } finally {
     adminAuthenticated = false;
     adminToken = "";
-    sessionStorage.removeItem(SESSION_KEY);
     records = [];
     adminPanel.hidden = true;
     if (adminLockNote) {
