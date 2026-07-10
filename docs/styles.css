@@ -227,6 +227,14 @@ select {
   gap: 18px;
 }
 
+.admin-lock {
+  padding: 12px 14px;
+  border-radius: 16px;
+  background: rgba(31, 93, 90, 0.08);
+  color: var(--accent-2);
+  font-size: 0.95rem;
+}
+
 .admin-gate-actions,
 .admin-actions,
 .filters {

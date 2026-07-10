@@ -13,6 +13,7 @@ const adminLogin = document.getElementById("adminLogin");
 const adminPassword = document.getElementById("adminPassword");
 const adminSubmitButton = document.getElementById("adminSubmitButton");
 const adminPanel = document.getElementById("adminPanel");
+const adminLockNote = document.getElementById("adminLockNote");
 const logoutButton = document.getElementById("logoutButton");
 
 const APP_CONFIG = window.APP_CONFIG || {};
@@ -131,10 +132,19 @@ function renderRecords() {
 
 async function loadAdminSession() {
   try {
+    if (!adminToken) {
+      adminAuthenticated = false;
+      adminPanel.hidden = true;
+      renderRecords();
+      return;
+    }
     const data = await requestJson("/api/admin/session");
     adminAuthenticated = Boolean(data.authenticated);
     sessionStorage.setItem(SESSION_KEY, String(adminAuthenticated));
     adminPanel.hidden = !adminAuthenticated;
+    if (adminLockNote) {
+      adminLockNote.hidden = !adminAuthenticated;
+    }
     if (adminAuthenticated) {
       await loadRecords();
     } else {
@@ -194,6 +204,9 @@ async function loginAdmin() {
     adminAuthenticated = true;
     sessionStorage.setItem(SESSION_KEY, "true");
     adminPanel.hidden = false;
+    if (adminLockNote) {
+      adminLockNote.hidden = false;
+    }
     adminLogin.hidden = true;
     adminPassword.value = "";
     await loadRecords();
@@ -212,6 +225,9 @@ async function logoutAdmin() {
     sessionStorage.removeItem(SESSION_KEY);
     records = [];
     adminPanel.hidden = true;
+    if (adminLockNote) {
+      adminLockNote.hidden = true;
+    }
     renderRecords();
   }
 }
