@@ -24,6 +24,11 @@ const archiveFilters = document.getElementById("archiveFilters");
 const liveTableWrap = document.getElementById("liveTableWrap");
 const archiveTableWrap = document.getElementById("archiveTableWrap");
 const archiveBody = document.getElementById("archiveBody");
+const toastStack = document.getElementById("toastStack");
+const totalCount = document.getElementById("totalCount");
+const liveCount = document.getElementById("liveCount");
+const archiveCount = document.getElementById("archiveCount");
+const keepCount = document.getElementById("keepCount");
 
 const APP_CONFIG = window.APP_CONFIG || {};
 const API_BASE_URL = APP_CONFIG.apiBaseUrl || "";
@@ -38,6 +43,7 @@ let adminAuthenticated = sessionStorage.getItem(SESSION_KEY) === "true";
 let myAttendanceToken = localStorage.getItem(STORAGE_KEY) || "";
 let gps = { latitude: "", longitude: "" };
 let viewMode = "live";
+let toastTimer = null;
 
 function apiUrl(pathname) {
   return `${API_BASE_URL}${pathname}`;
@@ -63,6 +69,27 @@ function updateClock() {
 function setMessage(text, type = "") {
   message.textContent = text;
   message.className = `message ${type}`.trim();
+  showToast(text, type || "info");
+}
+
+function showToast(text, type = "info") {
+  if (!toastStack || !text) return;
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  const iconName = type === "success" ? "check-circle-2" : type === "error" ? "triangle-alert" : "sparkles";
+  toast.innerHTML = `
+    <i data-lucide="${iconName}"></i>
+    <div>
+      <div class="title">${type === "error" ? "Action failed" : type === "success" ? "Success" : "Notice"}</div>
+      <div class="text">${text}</div>
+    </div>
+  `;
+  toastStack.appendChild(toast);
+  if (window.lucide) window.lucide.createIcons();
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toast.remove();
+  }, 3500);
 }
 
 function formatIstDateTime(timestamp) {
@@ -189,6 +216,7 @@ function renderRecords() {
       `;
     })
     .join("");
+  updateStats();
 }
 
 function renderArchiveRecords() {
@@ -223,6 +251,14 @@ function renderArchiveRecords() {
       `;
     })
     .join("");
+  updateStats();
+}
+
+function updateStats() {
+  if (totalCount) totalCount.textContent = String(records.length + archiveRecords.length);
+  if (liveCount) liveCount.textContent = String(records.length);
+  if (archiveCount) archiveCount.textContent = String(archiveRecords.length);
+  if (keepCount) keepCount.textContent = String(records.filter((record) => record.keepForever).length);
 }
 
 function setViewMode(mode) {
@@ -232,6 +268,8 @@ function setViewMode(mode) {
   archiveFilters.hidden = live;
   liveTableWrap.hidden = !live;
   archiveTableWrap.hidden = live;
+  liveViewButton?.classList.toggle("active", live);
+  archiveViewButton?.classList.toggle("active", !live);
 }
 
 async function loadAdminSession() {
@@ -266,6 +304,7 @@ async function loadRecords() {
   const data = await requestJson("/api/admin/records");
   records = data.records || [];
   renderRecords();
+  updateStats();
 }
 
 async function loadArchiveRecords() {
@@ -274,6 +313,7 @@ async function loadArchiveRecords() {
   const data = await requestJson(`/api/admin/archive${query}`);
   archiveRecords = data.records || [];
   renderArchiveRecords();
+  updateStats();
 }
 
 function saveMyToken(token) {
@@ -323,8 +363,10 @@ async function loginAdmin() {
     adminPassword.value = "";
     await loadRecords();
     await loadArchiveRecords();
+    showToast("Admin access granted. Dashboard unlocked.", "success");
   } catch (error) {
     window.alert(error.message);
+    showToast(error.message, "error");
   }
 }
 
@@ -342,6 +384,8 @@ async function logoutAdmin() {
       adminLockNote.hidden = true;
     }
     renderRecords();
+    archiveRecords = [];
+    renderArchiveRecords();
   }
 }
 
@@ -351,6 +395,7 @@ async function toggleKeepForever(recordId, keepForever) {
     body: JSON.stringify({ id: recordId, keepForever }),
   });
   await loadRecords();
+  showToast(keepForever ? "Record marked as keep forever." : "Record updated.", "success");
 }
 
 async function loadIp() {
@@ -436,6 +481,7 @@ form.addEventListener("submit", async (event) => {
     if (data.record) {
       records = [data.record, ...records];
       renderRecords();
+      updateStats();
     }
   } catch (error) {
     setMessage(error.message || "Failed to save attendance.", "error");
@@ -469,6 +515,7 @@ recordsBody?.addEventListener("click", async (event) => {
     await toggleKeepForever(recordId, true);
   } catch (error) {
     window.alert(error.message);
+    showToast(error.message, "error");
   }
 });
 
@@ -479,3 +526,4 @@ captureLocation();
 loadAdminSession();
 loadMyAttendance();
 setViewMode("live");
+updateStats();
