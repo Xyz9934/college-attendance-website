@@ -1,3 +1,3 @@
 window.APP_CONFIG = {
-  apiBaseUrl: "https://YOUR-RENDER-APP.onrender.com",
+  apiBaseUrl: "https://college-attendance-website.onrender.com",
 };
