@@ -9,9 +9,21 @@ const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "zoologybotany";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const APP_TIME_ZONE = "Asia/Kolkata";
+const CORS_ORIGIN = process.env.CORS_ORIGIN || "";
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "docs");
 const adminSessions = new Set();
+
+function setCorsHeaders(res, reqOrigin = "") {
+  const allowedOrigin = CORS_ORIGIN || reqOrigin;
+  if (allowedOrigin) {
+    res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+  }
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
+}
 
 function sendJson(res, statusCode, payload, extraHeaders = {}) {
   res.writeHead(statusCode, {
@@ -221,6 +233,13 @@ async function fetchTodaysAttendance(rollNumber, attendanceDay) {
 const server = http.createServer(async (req, res) => {
   const parsedUrl = url.parse(req.url, true);
   const pathname = decodeURIComponent(parsedUrl.pathname || "/");
+  const reqOrigin = req.headers.origin || "";
+
+  setCorsHeaders(res, reqOrigin);
+
+  if (req.method === "OPTIONS") {
+    return res.writeHead(204).end();
+  }
 
   if (req.method === "GET" && pathname === "/api/health") {
     return sendJson(res, 200, { ok: true });

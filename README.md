@@ -44,6 +44,7 @@ The app now uses a hosted Supabase database instead of browser-only storage.
 - `SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `ADMIN_PASSWORD=zoologybotany`
+- `CORS_ORIGIN=https://xyz9934.github.io`
 
 ## Deployment
 
@@ -55,6 +56,7 @@ The easiest fully hosted setup is:
 The backend serves the app and talks to Supabase, so the attendance data stays shared and permanent even when your PC is off.
 
 Render config is included in [`render.yaml`](./render.yaml). After deployment, replace the placeholder URL in [`docs/config.js`](./docs/config.js) with your live Render URL so the GitHub Pages frontend can call the backend.
+If GitHub Pages and Render are on different domains, keep `CORS_ORIGIN` set to your GitHub Pages origin so the browser can submit the form.
 
 ## Access rules
 
