@@ -75,7 +75,11 @@ function parseCookies(req) {
 }
 
 function getAdminToken(req) {
-  return parseCookies(req).admin_token || "";
+  const authHeader = req.headers.authorization || "";
+  if (authHeader.startsWith("Bearer ")) {
+    return authHeader.slice("Bearer ".length).trim();
+  }
+  return "";
 }
 
 function isAdmin(req) {
@@ -259,11 +263,7 @@ const server = http.createServer(async (req, res) => {
 
       const token = crypto.randomUUID();
       adminSessions.add(token);
-      res.writeHead(200, {
-        "Content-Type": "application/json; charset=utf-8",
-        "Set-Cookie": `admin_token=${encodeURIComponent(token)}; HttpOnly; Path=/; SameSite=Strict; Max-Age=86400`,
-      });
-      return res.end(JSON.stringify({ ok: true }));
+      return sendJson(res, 200, { ok: true, token });
     } catch {
       return sendJson(res, 500, { ok: false, error: "Could not sign in." });
     }
@@ -272,11 +272,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "POST" && pathname === "/api/admin/logout") {
     const token = getAdminToken(req);
     if (token) adminSessions.delete(token);
-    res.writeHead(200, {
-      "Content-Type": "application/json; charset=utf-8",
-      "Set-Cookie": "admin_token=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0",
-    });
-    return res.end(JSON.stringify({ ok: true }));
+    return sendJson(res, 200, { ok: true });
   }
 
   if (req.method === "GET" && pathname === "/api/admin/records") {

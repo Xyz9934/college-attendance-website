@@ -18,9 +18,11 @@ const logoutButton = document.getElementById("logoutButton");
 const APP_CONFIG = window.APP_CONFIG || {};
 const API_BASE_URL = APP_CONFIG.apiBaseUrl || "";
 const STORAGE_KEY = "attendance-my-token";
+const ADMIN_TOKEN_KEY = "attendance-admin-token";
 const SESSION_KEY = "attendance-admin-auth";
 
 let records = [];
+let adminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || "";
 let adminAuthenticated = sessionStorage.getItem(SESSION_KEY) === "true";
 let myAttendanceToken = localStorage.getItem(STORAGE_KEY) || "";
 let gps = { latitude: "", longitude: "" };
@@ -58,11 +60,17 @@ function formatLocation(record) {
 }
 
 async function requestJson(pathname, options = {}) {
+  const headers = {
+    "Content-Type": "application/json",
+    ...(options.headers || {}),
+  };
+
+  if (adminToken && pathname.startsWith("/api/admin/")) {
+    headers.Authorization = `Bearer ${adminToken}`;
+  }
+
   const response = await fetch(apiUrl(pathname), {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
+    headers,
     ...options,
   });
 
@@ -123,7 +131,7 @@ function renderRecords() {
 
 async function loadAdminSession() {
   try {
-    const data = await requestJson("/api/admin/session", { credentials: "include" });
+    const data = await requestJson("/api/admin/session");
     adminAuthenticated = Boolean(data.authenticated);
     sessionStorage.setItem(SESSION_KEY, String(adminAuthenticated));
     adminPanel.hidden = !adminAuthenticated;
@@ -141,7 +149,7 @@ async function loadAdminSession() {
 
 async function loadRecords() {
   if (!adminAuthenticated) return;
-  const data = await requestJson("/api/admin/records", { credentials: "include" });
+  const data = await requestJson("/api/admin/records");
   records = data.records || [];
   renderRecords();
 }
@@ -173,11 +181,15 @@ async function loginAdmin() {
   }
 
   try {
-    await requestJson("/api/admin/login", {
+    const data = await requestJson("/api/admin/login", {
       method: "POST",
-      credentials: "include",
       body: JSON.stringify({ password }),
     });
+
+    if (data.token) {
+      adminToken = data.token;
+      localStorage.setItem(ADMIN_TOKEN_KEY, adminToken);
+    }
 
     adminAuthenticated = true;
     sessionStorage.setItem(SESSION_KEY, "true");
@@ -192,9 +204,11 @@ async function loginAdmin() {
 
 async function logoutAdmin() {
   try {
-    await requestJson("/api/admin/logout", { method: "POST", credentials: "include" });
+    await requestJson("/api/admin/logout", { method: "POST" });
   } finally {
     adminAuthenticated = false;
+    adminToken = "";
+    localStorage.removeItem(ADMIN_TOKEN_KEY);
     sessionStorage.removeItem(SESSION_KEY);
     records = [];
     adminPanel.hidden = true;
