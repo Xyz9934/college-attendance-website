@@ -150,7 +150,35 @@ function getClientIp(req) {
   if (typeof forwarded === "string" && forwarded.trim()) {
     return forwarded.split(",")[0].trim();
   }
+  const realIp = req.headers["x-real-ip"];
+  if (typeof realIp === "string" && realIp.trim()) {
+    return realIp.trim();
+  }
+  if (req.ip && typeof req.ip === "string" && req.ip.trim()) {
+    return req.ip.trim();
+  }
   return req.socket.remoteAddress || "";
+}
+
+function mapAttendanceRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    name: row.name,
+    rollNumber: row.roll_number,
+    mobileNumber: row.mobile_number,
+    semester: row.semester,
+    course: row.course,
+    date: row.date,
+    time: row.time,
+    timestamp: row.timestamp,
+    attendanceDay: row.attendance_day,
+    ipAddress: row.ip_address,
+    userAgent: row.user_agent,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    accessToken: row.access_token,
+  };
 }
 
 async function supabaseRequest(pathname, { method = "GET", body, preferCount = false, preferRepresentation = false } = {}) {
@@ -211,7 +239,7 @@ async function fetchAttendanceByToken(token) {
     limit: "1",
   });
   const payload = await supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
-  return payload[0] || null;
+  return mapAttendanceRow(payload[0] || null);
 }
 
 async function fetchAllAttendance() {
@@ -220,7 +248,8 @@ async function fetchAllAttendance() {
     order: "timestamp.desc",
     limit: "1000",
   });
-  return supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
+  const payload = await supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
+  return (payload || []).map(mapAttendanceRow);
 }
 
 async function fetchTodaysAttendance(rollNumber, attendanceDay) {
@@ -231,7 +260,7 @@ async function fetchTodaysAttendance(rollNumber, attendanceDay) {
     limit: "1",
   });
   const payload = await supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
-  return payload[0] || null;
+  return mapAttendanceRow(payload[0] || null);
 }
 
 const server = http.createServer(async (req, res) => {
@@ -326,25 +355,11 @@ const server = http.createServer(async (req, res) => {
         access_token: accessToken,
       };
 
-      const inserted = await insertAttendance(record);
+      const inserted = mapAttendanceRow(await insertAttendance(record));
       return sendJson(res, 201, {
         ok: true,
         accessToken,
-        record: {
-          id: inserted.id,
-          name: inserted.name,
-          rollNumber: inserted.roll_number,
-          mobileNumber: inserted.mobile_number,
-          semester: inserted.semester,
-          course: inserted.course,
-          date: inserted.date,
-          time: inserted.time,
-          timestamp: inserted.timestamp,
-          attendanceDay: inserted.attendance_day,
-          ipAddress: inserted.ip_address,
-          latitude: inserted.latitude,
-          longitude: inserted.longitude,
-        },
+        record: inserted,
       });
     } catch (error) {
       return sendJson(res, 500, {
@@ -366,24 +381,7 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 404, { ok: false, error: "Record not found." });
       }
 
-      return sendJson(res, 200, {
-        ok: true,
-        record: {
-          id: record.id,
-          name: record.name,
-          rollNumber: record.roll_number,
-          mobileNumber: record.mobile_number,
-          semester: record.semester,
-          course: record.course,
-          date: record.date,
-          time: record.time,
-          timestamp: record.timestamp,
-          attendanceDay: record.attendance_day,
-          ipAddress: record.ip_address,
-          latitude: record.latitude,
-          longitude: record.longitude,
-        },
-      });
+      return sendJson(res, 200, { ok: true, record });
     } catch (error) {
       return sendJson(res, 500, { ok: false, error: error.message || "Could not load your attendance." });
     }
