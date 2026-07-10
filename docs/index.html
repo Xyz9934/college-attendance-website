@@ -100,13 +100,15 @@
             <p>Search, filter, and export records after admin sign-in.</p>
           </div>
           <div class="admin-actions">
+            <button id="liveViewButton" class="secondary" type="button">Live Records</button>
+            <button id="archiveViewButton" class="secondary" type="button">Archive</button>
             <button id="exportButton" class="secondary" type="button">Export CSV</button>
             <button id="logoutButton" class="secondary" type="button">Logout</button>
           </div>
         </div>
         <div class="admin-lock" id="adminLockNote">Admin-only view. Only the password holder can see all student records, IP addresses, and locations.</div>
 
-        <div class="filters">
+        <div class="filters" id="liveFilters">
           <input id="searchInput" type="search" placeholder="Search name or roll number" />
           <input id="dateFilter" type="date" />
           <select id="semesterFilter">
@@ -120,7 +122,12 @@
           </select>
         </div>
 
-        <div class="table-wrap">
+        <div class="filters" id="archiveFilters" hidden>
+          <input id="archiveDateFilter" type="date" />
+          <button id="archiveLoadButton" class="secondary" type="button">Load Archive</button>
+        </div>
+
+        <div class="table-wrap" id="liveTableWrap">
           <table>
             <thead>
               <tr>
@@ -132,10 +139,32 @@
                 <th>Time</th>
                 <th>IP</th>
                 <th>Location</th>
+                <th>Keep</th>
               </tr>
             </thead>
             <tbody id="recordsBody">
-              <tr><td colspan="8" class="empty">Admin records will appear here.</td></tr>
+              <tr><td colspan="9" class="empty">Admin records will appear here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-wrap" id="archiveTableWrap" hidden>
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Roll</th>
+                <th>Mobile</th>
+                <th>Semester</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>IP</th>
+                <th>Location</th>
+                <th>Kept</th>
+              </tr>
+            </thead>
+            <tbody id="archiveBody">
+              <tr><td colspan="9" class="empty">Archived records will appear here.</td></tr>
             </tbody>
           </table>
         </div>

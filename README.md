@@ -67,3 +67,5 @@ If GitHub Pages and Render are on different domains, keep `CORS_ORIGIN` set to y
 - The admin password is `zoologybotany`.
 - A roll number can submit only once per day.
 - The day resets after midnight in `Asia/Kolkata`.
+- Records marked `keep_forever` stay in the live table during the daily reset.
+- The admin archive page can browse prior days and export archived data.

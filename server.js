@@ -153,6 +153,15 @@ function getAttendanceDay(timestamp) {
   }).format(new Date(timestamp));
 }
 
+function getTodayIstDay() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 function getClientIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.trim()) {
@@ -186,6 +195,31 @@ function mapAttendanceRow(row) {
     latitude: row.latitude,
     longitude: row.longitude,
     accessToken: row.access_token,
+    keepForever: Boolean(row.keep_forever),
+  };
+}
+
+function mapArchiveRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    originalId: row.original_id,
+    name: row.name,
+    rollNumber: row.roll_number,
+    mobileNumber: row.mobile_number,
+    semester: row.semester,
+    course: row.course,
+    date: row.date,
+    time: row.time,
+    timestamp: row.timestamp,
+    attendanceDay: row.attendance_day,
+    ipAddress: row.ip_address,
+    userAgent: row.user_agent,
+    latitude: row.latitude,
+    longitude: row.longitude,
+    accessToken: row.access_token,
+    keepForever: Boolean(row.keep_forever),
+    archivedAt: row.archived_at,
   };
 }
 
@@ -252,12 +286,98 @@ async function fetchAttendanceByToken(token) {
 
 async function fetchAllAttendance() {
   const query = new URLSearchParams({
-    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,ip_address,user_agent,latitude,longitude",
+    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude",
     order: "timestamp.desc",
     limit: "1000",
   });
   const payload = await supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
   return (payload || []).map(mapAttendanceRow);
+}
+
+async function fetchAttendanceForDay(attendanceDay) {
+  const query = new URLSearchParams({
+    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token",
+    attendance_day: `eq.${attendanceDay}`,
+    order: "timestamp.desc",
+    limit: "1000",
+  });
+  const payload = await supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
+  return (payload || []).map(mapAttendanceRow);
+}
+
+async function fetchArchiveForDay(attendanceDay) {
+  const query = new URLSearchParams({
+    select: "id,original_id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token,archived_at",
+    attendance_day: `eq.${attendanceDay}`,
+    order: "timestamp.desc",
+    limit: "1000",
+  });
+  const payload = await supabaseRequest(`/rest/v1/attendance_archive?${query.toString()}`);
+  return (payload || []).map(mapArchiveRow);
+}
+
+async function fetchArchiveAll() {
+  const query = new URLSearchParams({
+    select: "id,original_id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token,archived_at",
+    order: "timestamp.desc",
+    limit: "2000",
+  });
+  const payload = await supabaseRequest(`/rest/v1/attendance_archive?${query.toString()}`);
+  return (payload || []).map(mapArchiveRow);
+}
+
+async function archiveAndResetIfNeeded() {
+  const today = getTodayIstDay();
+  const statePayload = await supabaseRequest("/rest/v1/attendance_reset_state?id=eq.1");
+  const state = statePayload[0] || null;
+  if (state && state.last_reset_day === today) {
+    return;
+  }
+
+  const todayRows = await fetchAttendanceForDay(today);
+  const oldQuery = new URLSearchParams({
+    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token",
+    attendance_day: `lt.${today}`,
+    order: "timestamp.desc",
+    limit: "2000",
+  });
+  const oldPayload = await supabaseRequest(`/rest/v1/attendance_records?${oldQuery.toString()}`);
+  const oldRows = (oldPayload || []).map(mapAttendanceRow);
+  const movable = [...oldRows, ...todayRows].filter((row) => !row.keepForever);
+  if (movable.length) {
+    const archiveRows = movable.map((row) => ({
+      id: row.id,
+      original_id: row.id,
+      name: row.name,
+      roll_number: row.rollNumber,
+      mobile_number: row.mobileNumber,
+      semester: row.semester,
+      course: row.course,
+      date: row.date,
+      time: row.time,
+      timestamp: row.timestamp,
+      attendance_day: row.attendanceDay,
+      keep_forever: row.keepForever,
+      ip_address: row.ipAddress,
+      user_agent: row.userAgent || "",
+      latitude: row.latitude,
+      longitude: row.longitude,
+      access_token: row.accessToken,
+    }));
+    await supabaseRequest("/rest/v1/attendance_archive", {
+      method: "POST",
+      body: archiveRows,
+      preferRepresentation: true,
+    });
+    await supabaseRequest(`/rest/v1/attendance_records?attendance_day=lt.${today}&keep_forever=eq.false`, {
+      method: "DELETE",
+    });
+  }
+
+  await supabaseRequest("/rest/v1/attendance_reset_state", {
+    method: "PATCH",
+    body: { last_reset_day: today, updated_at: new Date().toISOString() },
+  });
 }
 
 async function fetchTodaysAttendance(rollNumber, attendanceDay) {
@@ -284,6 +404,14 @@ const server = http.createServer(async (req, res) => {
 
   if (req.method === "GET" && pathname === "/api/health") {
     return sendJson(res, 200, { ok: true });
+  }
+
+  if (pathname.startsWith("/api/")) {
+    try {
+      await archiveAndResetIfNeeded();
+    } catch (error) {
+      console.error("Daily archive/reset failed:", error.message || error);
+    }
   }
 
   if (req.method === "GET" && pathname === "/api/admin/session") {
@@ -392,6 +520,41 @@ const server = http.createServer(async (req, res) => {
       return sendJson(res, 200, { ok: true, record });
     } catch (error) {
       return sendJson(res, 500, { ok: false, error: error.message || "Could not load your attendance." });
+    }
+  }
+
+  if (req.method === "POST" && pathname === "/api/admin/keep-forever") {
+    if (!isAdmin(req)) {
+      return sendJson(res, 401, { ok: false, error: "Admin access required." });
+    }
+    try {
+      const body = await readBody(req);
+      const id = String(body.id || "").trim();
+      const keepForever = Boolean(body.keepForever);
+      if (!id) {
+        return sendJson(res, 400, { ok: false, error: "Record id is required." });
+      }
+      const payload = await supabaseRequest(`/rest/v1/attendance_records?id=eq.${id}`, {
+        method: "PATCH",
+        body: [{ keep_forever: keepForever }],
+        preferRepresentation: true,
+      });
+      return sendJson(res, 200, { ok: true, record: mapAttendanceRow(payload[0] || null) });
+    } catch (error) {
+      return sendJson(res, 500, { ok: false, error: error.message || "Could not update keep forever." });
+    }
+  }
+
+  if (req.method === "GET" && pathname === "/api/admin/archive") {
+    if (!isAdmin(req)) {
+      return sendJson(res, 401, { ok: false, error: "Admin access required." });
+    }
+    try {
+      const date = String(parsedUrl.query.date || "").trim();
+      const records = date ? await fetchArchiveForDay(date) : await fetchArchiveAll();
+      return sendJson(res, 200, { records });
+    } catch (error) {
+      return sendJson(res, 500, { ok: false, error: error.message || "Could not load archive records." });
     }
   }
 

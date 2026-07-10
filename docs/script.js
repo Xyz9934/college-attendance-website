@@ -7,6 +7,10 @@ const ipAddress = document.getElementById("ipAddress");
 const searchInput = document.getElementById("searchInput");
 const dateFilter = document.getElementById("dateFilter");
 const semesterFilter = document.getElementById("semesterFilter");
+const archiveDateFilter = document.getElementById("archiveDateFilter");
+const archiveLoadButton = document.getElementById("archiveLoadButton");
+const liveViewButton = document.getElementById("liveViewButton");
+const archiveViewButton = document.getElementById("archiveViewButton");
 const exportButton = document.getElementById("exportButton");
 const openAdminButton = document.getElementById("openAdminButton");
 const adminLogin = document.getElementById("adminLogin");
@@ -15,6 +19,11 @@ const adminSubmitButton = document.getElementById("adminSubmitButton");
 const adminPanel = document.getElementById("adminPanel");
 const adminLockNote = document.getElementById("adminLockNote");
 const logoutButton = document.getElementById("logoutButton");
+const liveFilters = document.getElementById("liveFilters");
+const archiveFilters = document.getElementById("archiveFilters");
+const liveTableWrap = document.getElementById("liveTableWrap");
+const archiveTableWrap = document.getElementById("archiveTableWrap");
+const archiveBody = document.getElementById("archiveBody");
 
 const APP_CONFIG = window.APP_CONFIG || {};
 const API_BASE_URL = APP_CONFIG.apiBaseUrl || "";
@@ -23,10 +32,12 @@ const ADMIN_TOKEN_KEY = "attendance-admin-token";
 const SESSION_KEY = "attendance-admin-auth";
 
 let records = [];
+let archiveRecords = [];
 let adminToken = localStorage.getItem(ADMIN_TOKEN_KEY) || "";
 let adminAuthenticated = sessionStorage.getItem(SESSION_KEY) === "true";
 let myAttendanceToken = localStorage.getItem(STORAGE_KEY) || "";
 let gps = { latitude: "", longitude: "" };
+let viewMode = "live";
 
 function apiUrl(pathname) {
   return `${API_BASE_URL}${pathname}`;
@@ -102,6 +113,13 @@ function formatLocation(record) {
   return "Not available";
 }
 
+function renderKeepButton(record) {
+  if (record.keepForever) {
+    return '<button class="secondary" type="button" disabled>Kept</button>';
+  }
+  return `<button class="secondary" type="button" data-keep-id="${record.id}">Keep Forever</button>`;
+}
+
 async function requestJson(pathname, options = {}) {
   const headers = {
     "Content-Type": "application/json",
@@ -139,13 +157,13 @@ function matchesFilters(record) {
 
 function renderRecords() {
   if (!adminAuthenticated) {
-    recordsBody.innerHTML = '<tr><td colspan="8" class="empty">Admin records will appear here.</td></tr>';
+    recordsBody.innerHTML = '<tr><td colspan="9" class="empty">Admin records will appear here.</td></tr>';
     return;
   }
 
   const visible = records.filter(matchesFilters);
   if (!visible.length) {
-    recordsBody.innerHTML = '<tr><td colspan="8" class="empty">No matching attendance records.</td></tr>';
+    recordsBody.innerHTML = '<tr><td colspan="9" class="empty">No matching attendance records.</td></tr>';
     return;
   }
 
@@ -166,10 +184,54 @@ function renderRecords() {
           <td>${formatIstTime(record.timestamp)}</td>
           <td>${record.ipAddress || "Unknown"}</td>
           <td>${locationCell}</td>
+          <td>${renderKeepButton(record)}</td>
         </tr>
       `;
     })
     .join("");
+}
+
+function renderArchiveRecords() {
+  if (!adminAuthenticated) {
+    archiveBody.innerHTML = '<tr><td colspan="9" class="empty">Archived records will appear here.</td></tr>';
+    return;
+  }
+
+  if (!archiveRecords.length) {
+    archiveBody.innerHTML = '<tr><td colspan="9" class="empty">No archived records found.</td></tr>';
+    return;
+  }
+
+  archiveBody.innerHTML = archiveRecords
+    .map((record) => {
+      const locationCell =
+        record.latitude && record.longitude
+          ? `<a href="https://www.google.com/maps?q=${encodeURIComponent(`${record.latitude},${record.longitude}`)}" target="_blank" rel="noreferrer">${formatLocation(record)}</a>`
+          : "Not available";
+      return `
+        <tr>
+          <td>${record.name}</td>
+          <td>${record.rollNumber}</td>
+          <td>${record.mobileNumber}</td>
+          <td>${record.semester}</td>
+          <td>${formatIstDate(record.timestamp)}</td>
+          <td>${formatIstTime(record.timestamp)}</td>
+          <td>${record.ipAddress || "Unknown"}</td>
+          <td>${locationCell}</td>
+          <td>${record.keepForever ? "Yes" : "No"}</td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
+function setViewMode(mode) {
+  viewMode = mode;
+  const live = mode === "live";
+  liveFilters.hidden = !live;
+  archiveFilters.hidden = live;
+  liveTableWrap.hidden = !live;
+  archiveTableWrap.hidden = live;
 }
 
 async function loadAdminSession() {
@@ -204,6 +266,14 @@ async function loadRecords() {
   const data = await requestJson("/api/admin/records");
   records = data.records || [];
   renderRecords();
+}
+
+async function loadArchiveRecords() {
+  if (!adminAuthenticated) return;
+  const query = archiveDateFilter?.value ? `?date=${encodeURIComponent(archiveDateFilter.value)}` : "";
+  const data = await requestJson(`/api/admin/archive${query}`);
+  archiveRecords = data.records || [];
+  renderArchiveRecords();
 }
 
 function saveMyToken(token) {
@@ -252,6 +322,7 @@ async function loginAdmin() {
     adminLogin.hidden = true;
     adminPassword.value = "";
     await loadRecords();
+    await loadArchiveRecords();
   } catch (error) {
     window.alert(error.message);
   }
@@ -272,6 +343,14 @@ async function logoutAdmin() {
     }
     renderRecords();
   }
+}
+
+async function toggleKeepForever(recordId, keepForever) {
+  await requestJson("/api/admin/keep-forever", {
+    method: "POST",
+    body: JSON.stringify({ id: recordId, keepForever }),
+  });
+  await loadRecords();
 }
 
 async function loadIp() {
@@ -373,6 +452,25 @@ searchInput?.addEventListener("input", renderRecords);
 dateFilter?.addEventListener("change", renderRecords);
 semesterFilter?.addEventListener("change", renderRecords);
 exportButton?.addEventListener("click", () => downloadCsv(records.filter(matchesFilters)));
+liveViewButton?.addEventListener("click", () => setViewMode("live"));
+archiveViewButton?.addEventListener("click", async () => {
+  setViewMode("archive");
+  await loadArchiveRecords();
+});
+archiveLoadButton?.addEventListener("click", loadArchiveRecords);
+archiveDateFilter?.addEventListener("change", loadArchiveRecords);
+
+recordsBody?.addEventListener("click", async (event) => {
+  const button = event.target.closest("[data-keep-id]");
+  if (!button) return;
+  const recordId = button.getAttribute("data-keep-id");
+  if (!recordId) return;
+  try {
+    await toggleKeepForever(recordId, true);
+  } catch (error) {
+    window.alert(error.message);
+  }
+});
 
 updateClock();
 setInterval(updateClock, 1000);
@@ -380,3 +478,4 @@ loadIp();
 captureLocation();
 loadAdminSession();
 loadMyAttendance();
+setViewMode("live");
