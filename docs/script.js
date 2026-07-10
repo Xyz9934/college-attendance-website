@@ -59,7 +59,6 @@ function formatLocation(record) {
 
 async function requestJson(pathname, options = {}) {
   const response = await fetch(apiUrl(pathname), {
-    credentials: "include",
     headers: {
       "Content-Type": "application/json",
       ...(options.headers || {}),
@@ -124,7 +123,7 @@ function renderRecords() {
 
 async function loadAdminSession() {
   try {
-    const data = await requestJson("/api/admin/session");
+    const data = await requestJson("/api/admin/session", { credentials: "include" });
     adminAuthenticated = Boolean(data.authenticated);
     sessionStorage.setItem(SESSION_KEY, String(adminAuthenticated));
     adminPanel.hidden = !adminAuthenticated;
@@ -142,7 +141,7 @@ async function loadAdminSession() {
 
 async function loadRecords() {
   if (!adminAuthenticated) return;
-  const data = await requestJson("/api/admin/records");
+  const data = await requestJson("/api/admin/records", { credentials: "include" });
   records = data.records || [];
   renderRecords();
 }
@@ -176,6 +175,7 @@ async function loginAdmin() {
   try {
     await requestJson("/api/admin/login", {
       method: "POST",
+      credentials: "include",
       body: JSON.stringify({ password }),
     });
 
@@ -192,7 +192,7 @@ async function loginAdmin() {
 
 async function logoutAdmin() {
   try {
-    await requestJson("/api/admin/logout", { method: "POST" });
+    await requestJson("/api/admin/logout", { method: "POST", credentials: "include" });
   } finally {
     adminAuthenticated = false;
     sessionStorage.removeItem(SESSION_KEY);
