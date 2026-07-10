@@ -89,7 +89,7 @@ body::before {
 }
 
 .shell {
-  width: min(1300px, calc(100% - 24px));
+  width: min(980px, calc(100% - 20px));
   margin: 0 auto;
   padding: 24px 0 40px;
   position: relative;
@@ -104,7 +104,7 @@ body::before {
 
 .hero {
   border-radius: 30px;
-  padding: 26px;
+  padding: 22px;
 }
 
 .hero-top,
@@ -173,14 +173,6 @@ body::before {
   max-width: 15ch;
 }
 
-.hero-copy {
-  margin: 18px 0 0;
-  max-width: 74ch;
-  color: var(--muted);
-  font-size: 1.05rem;
-  line-height: 1.65;
-}
-
 .hero-chip {
   display: inline-flex;
   align-items: center;
@@ -225,18 +217,18 @@ body::before {
 
 .grid {
   display: grid;
-  gap: 24px;
-  margin-top: 24px;
+  gap: 22px;
+  margin-top: 22px;
 }
 
 .stack {
   display: grid;
-  gap: 24px;
+  gap: 22px;
 }
 
 .card {
   border-radius: var(--radius-xl);
-  padding: 26px;
+  padding: 22px;
   position: relative;
   overflow: hidden;
   background: linear-gradient(180deg, var(--panel), var(--panel-2));
@@ -253,7 +245,7 @@ body::before {
 .card h2 {
   margin: 0;
   font-family: Poppins, Inter, sans-serif;
-  font-size: 1.45rem;
+  font-size: 1.2rem;
   letter-spacing: -0.03em;
 }
 
@@ -264,12 +256,12 @@ body::before {
 
 .form {
   display: grid;
-  gap: 18px;
+  gap: 16px;
 }
 
 .form label {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -293,8 +285,8 @@ button {
 .filters select,
 .admin-login input {
   width: 100%;
-  min-height: 54px;
-  padding: 15px 18px;
+  min-height: 56px;
+  padding: 16px 18px;
   border-radius: 16px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: rgba(6, 8, 16, 0.74);
@@ -323,7 +315,7 @@ button {
 .meta-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+  gap: 12px;
 }
 
 .meta-grid div,
@@ -353,8 +345,8 @@ button {
   align-items: center;
   justify-content: center;
   gap: 10px;
-  min-height: 54px;
-  padding: 15px 20px;
+  min-height: 56px;
+  padding: 16px 20px;
   border-radius: 16px;
   border: 1px solid transparent;
   cursor: pointer;
@@ -611,21 +603,20 @@ a:hover {
 
 @media (min-width: 1100px) {
   .grid {
-    grid-template-columns: 1.08fr 0.92fr;
-    align-items: start;
+    grid-template-columns: 1fr;
   }
 }
 
 @media (max-width: 900px) {
   .shell {
-    width: min(100% - 20px, 1300px);
+    width: min(100% - 16px, 980px);
     padding-top: 16px;
   }
 
   .hero,
   .card {
-    padding: 20px;
-    border-radius: 22px;
+    padding: 18px;
+    border-radius: 20px;
   }
 
   .hero-top,
@@ -647,8 +638,25 @@ a:hover {
     font-size: clamp(1.85rem, 8vw, 2.5rem);
   }
 
+  .hero-stats,
+  .stats-strip,
+  .admin-actions,
+  .admin-gate-actions {
+    gap: 10px;
+  }
+
   .meta-grid {
     grid-template-columns: 1fr;
+  }
+
+  .primary,
+  .secondary,
+  .filters input,
+  .filters select,
+  .admin-login input,
+  .form label input,
+  .form label select {
+    min-height: 52px;
   }
 
   .toast-stack {
