@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "zoologybotany";
 const SUPABASE_URL = process.env.SUPABASE_URL || "";
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const APP_TIME_ZONE = "Asia/Kolkata";
 const ROOT = __dirname;
 const PUBLIC_DIR = path.join(ROOT, "docs");
 const adminSessions = new Set();
@@ -119,6 +120,15 @@ function formatDateTime(timestamp) {
   };
 }
 
+function getAttendanceDay(timestamp) {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: APP_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(timestamp));
+}
+
 function getClientIp(req) {
   const forwarded = req.headers["x-forwarded-for"];
   if (typeof forwarded === "string" && forwarded.trim()) {
@@ -180,7 +190,7 @@ async function insertAttendance(record) {
 
 async function fetchAttendanceByToken(token) {
   const query = new URLSearchParams({
-    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,ip_address,user_agent,latitude,longitude,access_token",
+    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,ip_address,user_agent,latitude,longitude,access_token",
     access_token: `eq.${token}`,
     limit: "1",
   });
@@ -190,11 +200,22 @@ async function fetchAttendanceByToken(token) {
 
 async function fetchAllAttendance() {
   const query = new URLSearchParams({
-    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,ip_address,user_agent,latitude,longitude",
+    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,ip_address,user_agent,latitude,longitude",
     order: "timestamp.desc",
     limit: "1000",
   });
   return supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
+}
+
+async function fetchTodaysAttendance(rollNumber, attendanceDay) {
+  const query = new URLSearchParams({
+    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,ip_address,user_agent,latitude,longitude",
+    roll_number: `eq.${rollNumber}`,
+    attendance_day: `eq.${attendanceDay}`,
+    limit: "1",
+  });
+  const payload = await supabaseRequest(`/rest/v1/attendance_records?${query.toString()}`);
+  return payload[0] || null;
 }
 
 const server = http.createServer(async (req, res) => {
@@ -262,6 +283,16 @@ const server = http.createServer(async (req, res) => {
 
       const timestamp = new Date().toISOString();
       const { date, time } = formatDateTime(timestamp);
+      const attendanceDay = getAttendanceDay(timestamp);
+
+      const existing = await fetchTodaysAttendance(validated.rollNumber, attendanceDay);
+      if (existing) {
+        return sendJson(res, 409, {
+          ok: false,
+          error: `Attendance already submitted for roll number ${validated.rollNumber} today.`,
+        });
+      }
+
       const accessToken = crypto.randomUUID();
       const record = {
         name: validated.name,
@@ -272,6 +303,7 @@ const server = http.createServer(async (req, res) => {
         date,
         time,
         timestamp,
+        attendance_day: attendanceDay,
         ip_address: getClientIp(req),
         user_agent: req.headers["user-agent"] || "",
         latitude: validated.latitude,
@@ -293,6 +325,7 @@ const server = http.createServer(async (req, res) => {
           date: inserted.date,
           time: inserted.time,
           timestamp: inserted.timestamp,
+          attendanceDay: inserted.attendance_day,
           ipAddress: inserted.ip_address,
           latitude: inserted.latitude,
           longitude: inserted.longitude,
@@ -330,6 +363,7 @@ const server = http.createServer(async (req, res) => {
           date: record.date,
           time: record.time,
           timestamp: record.timestamp,
+          attendanceDay: record.attendance_day,
           ipAddress: record.ip_address,
           latitude: record.latitude,
           longitude: record.longitude,

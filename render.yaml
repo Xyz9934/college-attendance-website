@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: college-attendance-website
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    autoDeploy: true
+    envVars:
+      - key: ADMIN_PASSWORD
+        value: zoologybotany
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

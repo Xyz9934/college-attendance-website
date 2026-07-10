@@ -54,6 +54,8 @@ The easiest fully hosted setup is:
 
 The backend serves the app and talks to Supabase, so the attendance data stays shared and permanent even when your PC is off.
 
+Render config is included in [`render.yaml`](./render.yaml). After deployment, replace the placeholder URL in [`docs/config.js`](./docs/config.js) with your live Render URL so the GitHub Pages frontend can call the backend.
+
 ## Access rules
 
 - Students submit attendance normally.
@@ -61,3 +63,5 @@ The backend serves the app and talks to Supabase, so the attendance data stays s
 - A student can only reopen their own record with that token.
 - The admin dashboard is available only after the correct password is entered.
 - The admin password is `zoologybotany`.
+- A roll number can submit only once per day.
+- The day resets after midnight in `Asia/Kolkata`.
