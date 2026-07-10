@@ -1,0 +1,12 @@
+{
+  "name": "zoology-attendance-app",
+  "version": "1.0.0",
+  "description": "Simple attendance app for B.Sc. Zoology with name, roll number, mobile number, IP, and location capture.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

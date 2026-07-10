@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>B.Sc. Zoology Attendance</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="badge">B.Sc. Zoology Attendance</div>
+        <h1>Simple attendance with name, roll number, and mobile number.</h1>
+        <p>
+          Students enter their details, and the system records the date, time,
+          and public IP address automatically.
+        </p>
+        <div class="stats">
+          <div><strong>Auto</strong><span>Date & Time</span></div>
+          <div><strong>Auto</strong><span>IP Address</span></div>
+        </div>
+      </section>
+
+      <section class="grid">
+        <article class="card form-card">
+          <div class="card-head">
+            <h2>Mark Attendance</h2>
+            <p>Course is fixed to B.Sc. Zoology.</p>
+          </div>
+
+          <form id="attendanceForm" class="form">
+            <label for="studentName">
+              Full Name
+              <input id="studentName" name="name" type="text" autocomplete="name" placeholder="Enter your full name" required />
+            </label>
+            <label for="rollNumber">
+              Roll Number
+              <input id="rollNumber" name="rollNumber" type="text" placeholder="Enter your roll number" required />
+            </label>
+            <label for="mobileNumber">
+              Mobile Number
+              <input id="mobileNumber" name="mobileNumber" type="tel" autocomplete="tel" placeholder="Enter your mobile number" required />
+            </label>
+            <label for="semester">
+              Semester
+              <select id="semester" name="semester" required>
+                <option value="">Select semester</option>
+                <option>1st Semester</option>
+                <option>2nd Semester</option>
+                <option>3rd Semester</option>
+                <option>4th Semester</option>
+                <option>5th Semester</option>
+                <option>6th Semester</option>
+              </select>
+            </label>
+
+            <div class="meta-grid">
+              <div>
+                <span>Date</span>
+                <strong id="currentDate">--</strong>
+              </div>
+              <div>
+                <span>Time</span>
+                <strong id="currentTime">--</strong>
+              </div>
+              <div>
+                <span>IP</span>
+                <strong id="ipAddress">Loading...</strong>
+              </div>
+              <div>
+                <span>Status</span>
+                <strong>Ready</strong>
+              </div>
+            </div>
+
+            <button type="submit" class="primary">Submit Attendance</button>
+            <p id="formMessage" class="message" aria-live="polite"></p>
+          </form>
+        </article>
+      </section>
+
+      <section class="card admin-gate">
+        <div>
+          <h2>Admin Access</h2>
+          <p>Only the admin can open attendance records with the shared password.</p>
+        </div>
+        <div class="admin-gate-actions">
+          <button id="openAdminButton" class="primary" type="button">See Attendance Data</button>
+          <div id="adminLogin" class="admin-login" hidden>
+            <input id="adminPassword" type="password" placeholder="Enter admin password" />
+            <button id="adminSubmitButton" class="secondary" type="button">Unlock Data</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="adminPanel" class="card admin-panel" hidden>
+        <div class="card-head row">
+          <div>
+            <h2>Attendance Dashboard</h2>
+            <p>Search, filter, and export records after admin sign-in.</p>
+          </div>
+          <div class="admin-actions">
+            <button id="exportButton" class="secondary" type="button">Export CSV</button>
+            <button id="logoutButton" class="secondary" type="button">Logout</button>
+          </div>
+        </div>
+
+        <div class="filters">
+          <input id="searchInput" type="search" placeholder="Search name or roll number" />
+          <input id="dateFilter" type="date" />
+          <select id="semesterFilter">
+            <option value="">All semesters</option>
+            <option>1st Semester</option>
+            <option>2nd Semester</option>
+            <option>3rd Semester</option>
+            <option>4th Semester</option>
+            <option>5th Semester</option>
+            <option>6th Semester</option>
+          </select>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Roll</th>
+                <th>Mobile</th>
+                <th>Semester</th>
+                <th>Date</th>
+                <th>Time</th>
+                <th>IP</th>
+                <th>Location</th>
+              </tr>
+            </thead>
+            <tbody id="recordsBody">
+              <tr><td colspan="8" class="empty">Admin records will appear here.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script src="/script.js"></script>
+  </body>
+  </html>
