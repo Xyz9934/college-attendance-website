@@ -3,7 +3,10 @@ const recordsBody = document.getElementById("recordsBody");
 const message = document.getElementById("formMessage");
 const currentDate = document.getElementById("currentDate");
 const currentTime = document.getElementById("currentTime");
-const ipAddress = document.getElementById("ipAddress");
+const heroCurrentDate = document.getElementById("heroCurrentDate");
+const heroCurrentTime = document.getElementById("heroCurrentTime");
+const heroIpAddress = document.getElementById("heroIpAddress");
+const ipAddress = heroIpAddress;
 const searchInput = document.getElementById("searchInput");
 const dateFilter = document.getElementById("dateFilter");
 const semesterFilter = document.getElementById("semesterFilter");
@@ -64,6 +67,8 @@ function updateClock() {
   const [datePart, timePart] = formatted.split(", ");
   currentDate.textContent = datePart || "--";
   currentTime.textContent = timePart || "--";
+  if (heroCurrentDate) heroCurrentDate.textContent = datePart || "--";
+  if (heroCurrentTime) heroCurrentTime.textContent = timePart || "--";
 }
 
 function setMessage(text, type = "") {
