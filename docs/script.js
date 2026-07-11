@@ -10,6 +10,7 @@ const ipAddress = heroIpAddress;
 const searchInput = document.getElementById("searchInput");
 const dateFilter = document.getElementById("dateFilter");
 const semesterFilter = document.getElementById("semesterFilter");
+const statusFilter = document.getElementById("statusFilter");
 const archiveDateFilter = document.getElementById("archiveDateFilter");
 const archiveLoadButton = document.getElementById("archiveLoadButton");
 const liveViewButton = document.getElementById("liveViewButton");
@@ -143,6 +144,10 @@ function formatLocation(record) {
   return "Not available";
 }
 
+function normalizeAttendanceStatus(value) {
+  return value === "Not Coming to College" ? "Not Coming to College" : "Coming to College";
+}
+
 function renderKeepButton(record) {
   if (record.keepForever) {
     return '<button class="secondary" type="button" disabled>Kept</button>';
@@ -176,24 +181,26 @@ function matchesFilters(record) {
   const term = searchInput?.value.trim().toLowerCase() || "";
   const selectedDate = dateFilter?.value || "";
   const selectedSemester = semesterFilter?.value || "";
+  const selectedStatus = statusFilter?.value || "";
 
   const haystack = `${record.name} ${record.rollNumber}`.toLowerCase();
   const termMatch = !term || haystack.includes(term);
   const dateMatch = !selectedDate || selectedDate === formatIstDateKey(record.timestamp);
   const semesterMatch = !selectedSemester || selectedSemester === record.semester;
+  const statusMatch = !selectedStatus || selectedStatus === record.attendanceStatus;
 
-  return termMatch && dateMatch && semesterMatch;
+  return termMatch && dateMatch && semesterMatch && statusMatch;
 }
 
 function renderRecords() {
   if (!adminAuthenticated) {
-    recordsBody.innerHTML = '<tr><td colspan="9" class="empty">Admin records will appear here.</td></tr>';
+    recordsBody.innerHTML = '<tr><td colspan="10" class="empty">Admin records will appear here.</td></tr>';
     return;
   }
 
   const visible = records.filter(matchesFilters);
   if (!visible.length) {
-    recordsBody.innerHTML = '<tr><td colspan="9" class="empty">No matching attendance records.</td></tr>';
+    recordsBody.innerHTML = '<tr><td colspan="10" class="empty">No matching attendance records.</td></tr>';
     return;
   }
 
@@ -210,6 +217,7 @@ function renderRecords() {
           <td>${record.rollNumber}</td>
           <td>${record.mobileNumber}</td>
           <td>${record.semester}</td>
+          <td>${record.attendanceStatus || "Coming to College"}</td>
           <td>${formatIstDate(record.timestamp)}</td>
           <td>${formatIstTime(record.timestamp)}</td>
           <td>${record.ipAddress || "Unknown"}</td>
@@ -224,12 +232,12 @@ function renderRecords() {
 
 function renderArchiveRecords() {
   if (!adminAuthenticated) {
-    archiveBody.innerHTML = '<tr><td colspan="9" class="empty">Archived records will appear here.</td></tr>';
+    archiveBody.innerHTML = '<tr><td colspan="10" class="empty">Archived records will appear here.</td></tr>';
     return;
   }
 
   if (!archiveRecords.length) {
-    archiveBody.innerHTML = '<tr><td colspan="9" class="empty">No archived records found.</td></tr>';
+    archiveBody.innerHTML = '<tr><td colspan="10" class="empty">No archived records found.</td></tr>';
     return;
   }
 
@@ -245,6 +253,7 @@ function renderArchiveRecords() {
           <td>${record.rollNumber}</td>
           <td>${record.mobileNumber}</td>
           <td>${record.semester}</td>
+          <td>${record.attendanceStatus || "Coming to College"}</td>
           <td>${formatIstDate(record.timestamp)}</td>
           <td>${formatIstTime(record.timestamp)}</td>
           <td>${record.ipAddress || "Unknown"}</td>
@@ -412,7 +421,7 @@ function captureLocation() {
 }
 
 function downloadCsv(rows) {
-  const headers = ["Name", "Roll Number", "Mobile Number", "Semester", "Course", "Date", "Time", "IP Address", "Location", "Timestamp"];
+  const headers = ["Name", "Roll Number", "Mobile Number", "Semester", "Attendance Status", "Course", "Date", "Time", "IP Address", "Location", "Timestamp"];
   const csvRows = [
     headers.join(","),
     ...rows.map((row) =>
@@ -421,6 +430,7 @@ function downloadCsv(rows) {
         row.rollNumber,
         row.mobileNumber,
         row.semester,
+        row.attendanceStatus,
         row.course,
         row.date,
         row.time,
@@ -448,6 +458,7 @@ form.addEventListener("submit", async (event) => {
 
   const formData = new FormData(form);
   const payload = Object.fromEntries(formData.entries());
+  payload.attendanceStatus = normalizeAttendanceStatus(payload.attendanceStatus);
   payload.latitude = gps.latitude;
   payload.longitude = gps.longitude;
 
@@ -483,6 +494,7 @@ logoutButton.addEventListener("click", logoutAdmin);
 searchInput?.addEventListener("input", renderRecords);
 dateFilter?.addEventListener("change", renderRecords);
 semesterFilter?.addEventListener("change", renderRecords);
+statusFilter?.addEventListener("change", renderRecords);
 exportButton?.addEventListener("click", () => downloadCsv(records.filter(matchesFilters)));
 liveViewButton?.addEventListener("click", () => setViewMode("live"));
 archiveViewButton?.addEventListener("click", async () => {

@@ -6,6 +6,7 @@ create table if not exists public.attendance_records (
   roll_number text not null,
   mobile_number text not null,
   semester text not null,
+  attendance_status text not null default 'Coming to College',
   course text not null default 'B.Sc. Zoology',
   date text not null,
   time text not null,
@@ -27,6 +28,7 @@ create table if not exists public.attendance_archive (
   roll_number text not null,
   mobile_number text not null,
   semester text not null,
+  attendance_status text not null default 'Coming to College',
   course text not null,
   date text not null,
   time text not null,
@@ -62,6 +64,12 @@ create unique index if not exists attendance_records_one_per_day_idx
 
 create index if not exists attendance_records_keep_forever_idx
   on public.attendance_records (keep_forever);
+
+alter table public.attendance_records
+add column if not exists attendance_status text not null default 'Coming to College';
+
+alter table public.attendance_archive
+add column if not exists attendance_status text not null default 'Coming to College';
 
 create index if not exists attendance_archive_timestamp_idx
   on public.attendance_archive (timestamp desc);

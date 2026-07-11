@@ -99,6 +99,20 @@
               </select>
             </label>
 
+            <fieldset class="status-field">
+              <legend><i data-lucide="badge-check"></i> Attendance Status</legend>
+              <div class="status-options">
+                <label class="status-option">
+                  <input type="radio" name="attendanceStatus" value="Coming to College" required />
+                  <span>✅ Coming to College</span>
+                </label>
+                <label class="status-option">
+                  <input type="radio" name="attendanceStatus" value="Not Coming to College" required />
+                  <span>❌ Not Coming to College</span>
+                </label>
+              </div>
+            </fieldset>
+
             <div class="meta-grid">
               <div>
                 <span>Date</span>
@@ -208,6 +222,11 @@
                 <option>5th Semester</option>
                 <option>6th Semester</option>
               </select>
+              <select id="statusFilter">
+                <option value="">All status</option>
+                <option value="Coming to College">Coming to College</option>
+                <option value="Not Coming to College">Not Coming to College</option>
+              </select>
             </div>
 
             <div class="filters" id="archiveFilters" hidden>
@@ -226,6 +245,7 @@
                     <th>Roll</th>
                     <th>Mobile</th>
                     <th>Semester</th>
+                    <th>Status</th>
                     <th>Date</th>
                     <th>Time</th>
                     <th>IP</th>
@@ -234,7 +254,7 @@
                   </tr>
                 </thead>
                 <tbody id="recordsBody">
-                  <tr><td colspan="9" class="empty">Admin records will appear here.</td></tr>
+                  <tr><td colspan="10" class="empty">Admin records will appear here.</td></tr>
                 </tbody>
               </table>
             </div>
@@ -247,6 +267,7 @@
                     <th>Roll</th>
                     <th>Mobile</th>
                     <th>Semester</th>
+                    <th>Status</th>
                     <th>Date</th>
                     <th>Time</th>
                     <th>IP</th>
@@ -255,7 +276,7 @@
                   </tr>
                 </thead>
                 <tbody id="archiveBody">
-                  <tr><td colspan="9" class="empty">Archived records will appear here.</td></tr>
+                  <tr><td colspan="10" class="empty">Archived records will appear here.</td></tr>
                 </tbody>
               </table>
             </div>

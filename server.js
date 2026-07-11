@@ -108,6 +108,7 @@ function validateSubmission(body) {
   const rollNumber = String(body.rollNumber || "").trim();
   const mobileNumber = String(body.mobileNumber || "").trim();
   const semester = String(body.semester || "").trim();
+  const attendanceStatus = String(body.attendanceStatus || "").trim();
   const latitude = body.latitude === null || body.latitude === undefined ? "" : String(body.latitude).trim();
   const longitude = body.longitude === null || body.longitude === undefined ? "" : String(body.longitude).trim();
 
@@ -116,8 +117,9 @@ function validateSubmission(body) {
   if (!mobileNumber) return "Mobile number is required.";
   if (!/^[0-9+\-\s()]{7,20}$/.test(mobileNumber)) return "Enter a valid mobile number.";
   if (!semester) return "Semester is required.";
+  if (attendanceStatus !== "Coming to College" && attendanceStatus !== "Not Coming to College") return "Attendance status is required.";
 
-  return { name, rollNumber, mobileNumber, semester, latitude, longitude };
+  return { name, rollNumber, mobileNumber, semester, attendanceStatus, latitude, longitude };
 }
 
 function formatDateTime(timestamp) {
@@ -185,6 +187,7 @@ function mapAttendanceRow(row) {
     rollNumber: row.roll_number,
     mobileNumber: row.mobile_number,
     semester: row.semester,
+    attendanceStatus: row.attendance_status || "Coming to College",
     course: row.course,
     date: row.date,
     time: row.time,
@@ -208,6 +211,7 @@ function mapArchiveRow(row) {
     rollNumber: row.roll_number,
     mobileNumber: row.mobile_number,
     semester: row.semester,
+    attendanceStatus: row.attendance_status || "Coming to College",
     course: row.course,
     date: row.date,
     time: row.time,
@@ -276,7 +280,7 @@ async function insertAttendance(record) {
 
 async function fetchAttendanceByToken(token) {
   const query = new URLSearchParams({
-    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,ip_address,user_agent,latitude,longitude,access_token",
+    select: "id,name,roll_number,mobile_number,semester,attendance_status,course,date,time,timestamp,attendance_day,ip_address,user_agent,latitude,longitude,access_token",
     access_token: `eq.${token}`,
     limit: "1",
   });
@@ -286,7 +290,7 @@ async function fetchAttendanceByToken(token) {
 
 async function fetchAllAttendance() {
   const query = new URLSearchParams({
-    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude",
+    select: "id,name,roll_number,mobile_number,semester,attendance_status,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude",
     order: "timestamp.desc",
     limit: "1000",
   });
@@ -296,7 +300,7 @@ async function fetchAllAttendance() {
 
 async function fetchAttendanceForDay(attendanceDay) {
   const query = new URLSearchParams({
-    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token",
+    select: "id,name,roll_number,mobile_number,semester,attendance_status,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token",
     attendance_day: `eq.${attendanceDay}`,
     order: "timestamp.desc",
     limit: "1000",
@@ -307,7 +311,7 @@ async function fetchAttendanceForDay(attendanceDay) {
 
 async function fetchArchiveForDay(attendanceDay) {
   const query = new URLSearchParams({
-    select: "id,original_id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token,archived_at",
+    select: "id,original_id,name,roll_number,mobile_number,semester,attendance_status,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token,archived_at",
     attendance_day: `eq.${attendanceDay}`,
     order: "timestamp.desc",
     limit: "1000",
@@ -318,7 +322,7 @@ async function fetchArchiveForDay(attendanceDay) {
 
 async function fetchArchiveAll() {
   const query = new URLSearchParams({
-    select: "id,original_id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token,archived_at",
+    select: "id,original_id,name,roll_number,mobile_number,semester,attendance_status,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token,archived_at",
     order: "timestamp.desc",
     limit: "2000",
   });
@@ -336,7 +340,7 @@ async function archiveAndResetIfNeeded() {
 
   const todayRows = await fetchAttendanceForDay(today);
   const oldQuery = new URLSearchParams({
-    select: "id,name,roll_number,mobile_number,semester,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token",
+    select: "id,name,roll_number,mobile_number,semester,attendance_status,course,date,time,timestamp,attendance_day,keep_forever,ip_address,user_agent,latitude,longitude,access_token",
     attendance_day: `lt.${today}`,
     order: "timestamp.desc",
     limit: "2000",
@@ -352,6 +356,7 @@ async function archiveAndResetIfNeeded() {
       roll_number: row.rollNumber,
       mobile_number: row.mobileNumber,
       semester: row.semester,
+      attendance_status: row.attendanceStatus,
       course: row.course,
       date: row.date,
       time: row.time,
@@ -479,6 +484,7 @@ const server = http.createServer(async (req, res) => {
         roll_number: validated.rollNumber,
         mobile_number: validated.mobileNumber,
         semester: validated.semester,
+        attendance_status: validated.attendanceStatus,
         course: "B.Sc. Zoology",
         date,
         time,
