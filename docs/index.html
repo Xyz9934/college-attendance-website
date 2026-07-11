@@ -99,19 +99,14 @@
               </select>
             </label>
 
-            <fieldset class="status-field">
-              <legend><i data-lucide="badge-check"></i> Attendance Status</legend>
-              <div class="status-options">
-                <label class="status-option">
-                  <input type="radio" name="attendanceStatus" value="Coming to College" required />
-                  <span>✅ Coming to College</span>
-                </label>
-                <label class="status-option">
-                  <input type="radio" name="attendanceStatus" value="Not Coming to College" required />
-                  <span>❌ Not Coming to College</span>
-                </label>
-              </div>
-            </fieldset>
+            <label for="attendanceStatus">
+              <span><i data-lucide="badge-check"></i> Attendance Status</span>
+              <select id="attendanceStatus" name="attendanceStatus" required>
+                <option value="">Select attendance status</option>
+                <option>Coming to College</option>
+                <option>Not Coming to College</option>
+              </select>
+            </label>
 
             <div class="meta-grid">
               <div>

@@ -318,52 +318,6 @@ button {
   gap: 12px;
 }
 
-.status-field {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  display: grid;
-  gap: 10px;
-}
-
-.status-field legend {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  color: #ffffff;
-  margin-bottom: 2px;
-}
-
-.status-options {
-  display: grid;
-  gap: 10px;
-}
-
-.status-option {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 54px;
-  padding: 0 16px;
-  border-radius: 16px;
-  background: rgba(6, 8, 16, 0.74);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  cursor: pointer;
-}
-
-.status-option input {
-  accent-color: var(--accent-2);
-  width: 18px;
-  height: 18px;
-}
-
-.status-option span {
-  font-size: 0.98rem;
-  color: var(--text);
-}
-
 .meta-grid div,
 .mini-stat {
   padding: 16px;
@@ -693,10 +647,6 @@ a:hover {
 
   .meta-grid {
     grid-template-columns: 1fr;
-  }
-
-  .status-option {
-    min-height: 52px;
   }
 
   .primary,
